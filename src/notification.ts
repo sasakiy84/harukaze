@@ -1,6 +1,7 @@
-import { getNSecondsAgo, getUnixTime } from './utils.js';
+import { getNSecondsAgo, getUnixTime, loadEnv } from './utils.js';
 import { MinufluxFeedEntry, readMinifluxEntries } from './miniflux.js';
 import { getAllSlackChannels } from './slack.js';
+import OpenAI from 'openai';
 
 const FEED_FETCH_INTERVAL_SECOND = 60 * 60 * 24;
 
@@ -10,7 +11,7 @@ type PluginDataObject = MinufluxFeedEntry & {
   channelId: string;
 }
 
-type Plugin = (feeds: PluginDataObject[]) => Promise<PluginDataObject[]>;
+type Plugin = (entries: PluginDataObject[]) => Promise<PluginDataObject[]>;
 
 const fetchFeedsAndNotify = async (plugins: Plugin[] = []) => {
     const after = getNSecondsAgo(FEED_FETCH_INTERVAL_SECOND);
@@ -29,16 +30,21 @@ const fetchFeedsAndNotify = async (plugins: Plugin[] = []) => {
     }
 
     console.log('Feeds:', feedsForPlugin.length);
-    console.log('Filtered feeds:', feedsForPlugin.map(feed => `${feed.title}, ${feed.url}`).join('\n'));
+    console.log('Filtered feeds:', feedsForPlugin.map(entry => `${entry.title}, ${entry.url}, ${entry.channelId}`).join('\n'));
     
     // TODO: Implement the logic to send notifications to Slack
 };
 
-const determineNotificationChannelPlugin: Plugin = async (feeds) => {
+const OPENAI_API_KEY = loadEnv("OPENAI_API_KEY");
+const openai = new OpenAI({
+  apiKey: OPENAI_API_KEY,
+});
+
+const determineNotificationChannelPlugin: Plugin = async (entries) => {
   const channels = await getAllSlackChannels();
   if (!channels) {
     console.error('Failed to fetch channels');
-    return feeds;
+    return entries;
   }
 
   const targetChannels = (channels || []).filter(channel => 
@@ -47,15 +53,40 @@ const determineNotificationChannelPlugin: Plugin = async (feeds) => {
 
   console.log(`Target channels: ${targetChannels.map(channel => channel.name).join(', ')}`);
 
-  // Placeholder for LLM API call
-  // Example: const response = await fetchLLMResponse(feeds, channels);
-  // Process the response to determine the target channel
-  return feeds.map(feed => {
-    return {
-      ...feed,
-      channelId: targetChannels[0]?.id ?? feed.channelId,
-    };
-  });
+  for (const entry of entries) {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a professional journalist who needs to send a news article to a Slack channel. Please select a channel from the list below, and return the channel number.',
+          },
+          {
+            role: 'user',
+            content: `<entry>
+  <title>${entry.title}</title>
+  <url>${entry.url}</url>
+  <category>${entry.feed.category.title}</category>
+  <content>${entry.content}</content>
+</entry>
+
+<channels>
+${targetChannels.map((channel, index) => `  <channel number='${index}'>
+    <name>${channel.name}</name>
+    <topic>${channel.topic?.value ?? 'no topic provided'}</topic>
+  </channel>`).join('\n')}
+</channels>`,
+          },
+        ],
+      });
+
+      const channel = response.choices[0].message.content;
+      const targetChannelNumber = channel ? Number.parseInt(channel) || 0 : 0;
+      const matchedChannel = targetChannels[targetChannelNumber] || targetChannels.at(0);
+      entry.channelId = matchedChannel?.id ?? entry.channelId;
+  }
+
+  return entries;
 };
 
 export { fetchFeedsAndNotify, determineNotificationChannelPlugin, Plugin, PluginDataObject, FEED_FETCH_INTERVAL_SECOND };
