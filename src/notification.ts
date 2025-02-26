@@ -4,18 +4,18 @@ import { getAllSlackChannels, sendSlackMessage } from './slack.js';
 import { KnownBlock } from '@slack/web-api';
 import OpenAI from 'openai';
 
-const FEED_FETCH_INTERVAL_SECOND = 60 * 60 * 24;
+export const FEED_FETCH_INTERVAL_SECOND = 60;
 
-type PluginDataObject = MinifluxFeedEntry & {
+export type PluginDataObject = MinifluxFeedEntry & {
   filtered: boolean;
   additionalMessages: Record<string, string>;
   channelId: string;
 }
 
-type Plugin = (entries: PluginDataObject[]) => Promise<PluginDataObject[]>;
+export type Plugin = (entries: PluginDataObject[]) => Promise<PluginDataObject[]>;
 
 let lastFetchedAt: Date | null = null;
-const fetchFeedsAndNotify = async (plugins: Plugin[] = []) => {
+export const fetchFeedsAndNotify = async (plugins: Plugin[] = []) => {
   const changedAfter = lastFetchedAt || getNSecondsAgo(FEED_FETCH_INTERVAL_SECOND);
   const changedBefore = new Date();
   // 新しい　feed を追加したときに、大量の entry が登録される。それら全てが通知されるのを防ぐため、24時間以内に公開されたものだけを通知する
@@ -94,7 +94,7 @@ const openai = new OpenAI({
   apiKey: OPENAI_API_KEY,
 });
 
-const determineNotificationChannelPlugin: Plugin = async (entries) => {
+export const determineNotificationChannelPlugin: Plugin = async (entries) => {
   const channels = await getAllSlackChannels();
   if (!channels) {
     console.error('Failed to fetch channels');
@@ -142,5 +142,3 @@ ${targetChannels.map((channel, index) => `  <channel number='${index}'>
 
   return entries;
 };
-
-export { fetchFeedsAndNotify, determineNotificationChannelPlugin, Plugin, PluginDataObject, FEED_FETCH_INTERVAL_SECOND };

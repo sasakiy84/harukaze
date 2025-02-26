@@ -3,7 +3,7 @@ import { loadEnv } from './utils.js';
 import { fetchFeedsAndNotify, determineNotificationChannelPlugin, Plugin, FEED_FETCH_INTERVAL_SECOND } from './notification.js';
 
 const plugins: Plugin[] = [determineNotificationChannelPlugin];
-// Initial fetch and notification
+
 await fetchFeedsAndNotify(plugins);
 setInterval(async () => {
   await fetchFeedsAndNotify(plugins);
