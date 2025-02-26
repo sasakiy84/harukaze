@@ -44,7 +44,7 @@ export type MinifluxFeed = {
     } | null;
 }
 
-export type MinufluxFeedEntry = {
+export type MinifluxFeedEntry = {
     id: number;
     user_id: number;
     feed_id: number;
@@ -84,7 +84,7 @@ export const flushMinifluxHistory = async (): Promise<void> => {
 
 export type ReadMinifluxEntriesResponse = {
     total: number;
-    entries: MinufluxFeedEntry[];
+    entries: MinifluxFeedEntry[];
 }
 
 type UnixTimestamp = number;

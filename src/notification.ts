@@ -1,11 +1,12 @@
 import { getNSecondsAgo, getUnixTime, loadEnv } from './utils.js';
-import { MinufluxFeedEntry, readMinifluxEntries } from './miniflux.js';
-import { getAllSlackChannels } from './slack.js';
+import { MinifluxFeedEntry, readMinifluxEntries } from './miniflux.js';
+import { getAllSlackChannels, sendSlackMessage } from './slack.js';
+import { KnownBlock } from '@slack/web-api';
 import OpenAI from 'openai';
 
 const FEED_FETCH_INTERVAL_SECOND = 60 * 60 * 24;
 
-type PluginDataObject = MinufluxFeedEntry & {
+type PluginDataObject = MinifluxFeedEntry & {
   filtered: boolean;
   additionalMessages: Record<string, string>;
   channelId: string;
@@ -31,8 +32,45 @@ const fetchFeedsAndNotify = async (plugins: Plugin[] = []) => {
 
     console.log('Feeds:', feedsForPlugin.length);
     console.log('Filtered feeds:', feedsForPlugin.map(entry => `${entry.title}, ${entry.url}, ${entry.channelId}`).join('\n'));
-    
-    // TODO: Implement the logic to send notifications to Slack
+
+    for (const entry of feedsForPlugin) {
+      if (entry.channelId) {
+        const blocks: KnownBlock[] = [
+          {
+            type: "header",
+            text: {
+              type: "plain_text",
+              text: `${entry.title}`,
+              emoji: true
+            }
+          },
+          {
+            type: "section",
+            fields: [
+              {
+                type: "mrkdwn",
+                text: `*URL:*\n${entry.url}`
+              },
+              {
+                type: "mrkdwn",
+                text: `*Category:*\n${entry.feed.category.title}`
+              }
+            ]
+          },
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: entry.content
+            }
+          },
+          {
+            type: "divider"
+          }
+        ];
+        await sendSlackMessage(entry.channelId, entry.title, blocks);
+      }
+    }
 };
 
 const OPENAI_API_KEY = loadEnv("OPENAI_API_KEY");
