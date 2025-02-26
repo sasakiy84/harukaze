@@ -1,7 +1,7 @@
 import { WebClient, ConversationsListResponse } from '@slack/web-api';
-import { loadEnv } from './utils';
+import { loadEnv } from './utils.js';
 
-const token = loadEnv('SLACK_TOKEN');
+const token = loadEnv('SLACK_BOT_TOKEN');
 const web = new WebClient(token);
 
 export async function getAllSlackChannels(): Promise<ConversationsListResponse['channels']> {
