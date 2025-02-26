@@ -36,6 +36,8 @@ npm install
 - `MINIFLUX_API_KEY`: Miniflux API キー。
 - `SLACK_BOT_TOKEN`: Slack ボットのトークン。
 - `SLACK_CHANNEL_ID`: 通知を送信する Slack チャンネルの ID。
+- `SLACK_SIGNING_SECRET`: Slack アプリの署名シークレット。
+- `SLACK_APP_TOKEN`: Slack アプリのトークン。
 - `LLM_API_KEY`: 言語モデルサービスの API キー。
 
 4. **アプリの実行**: アプリケーションを開始します。
@@ -45,7 +47,7 @@ npm start
 
 ## 使用方法
 
-アプリが実行されると、Miniflux から定期的に RSS フィードを取得し、LLM を使用して処理し、要約された内容を指定された Slack チャンネルに送信します。
+アプリが実行されると、Miniflux から定期的に RSS フィードを取得し、LLM を使用して処理し、要約された内容を指定された Slack チャンネルに送信します。また、Slack チャンネルで "hello" とメッセージを送信すると、ボットが挨拶を返します。
 
 ## ライセンス
 
