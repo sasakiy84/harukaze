@@ -6,7 +6,11 @@ const plugins: Plugin[] = [determineNotificationChannelPlugin];
 
 await fetchFeedsAndNotify(plugins);
 setInterval(async () => {
-  await fetchFeedsAndNotify(plugins);
+  try {
+    await fetchFeedsAndNotify(plugins);
+  } catch (error) {
+    console.error('Failed to fetch feeds and notify:', error);
+  }
 }, FEED_FETCH_INTERVAL_SECOND * 1000);
 
 const main = async () => {
