@@ -56,6 +56,7 @@ export type MinifluxFeedEntry = {
     hash: string;
     published_at: string;
     created_at: string;
+    changed_at: string;
     status: string;
     share_code: string;
     starred: boolean;
