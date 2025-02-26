@@ -4,7 +4,8 @@
   "description": "A Slack app to fetch, filter, and summarize RSS feeds from a self-hosted Miniflux API using a language model, and send notifications to Slack.",
   "main": "index.js",
   "scripts": {
-    "start": "tsc && node dist/index.js"
+    "start": "tsc src/test.ts && node src/test.js",
+    "test:ts": "tsc src/test.ts && node src/test.js"
   },
   "author": "",
   "license": "MIT",
