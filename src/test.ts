@@ -1,1 +1,3 @@
-console.log("TypeScript setup is working correctly.");
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+export { delay };
