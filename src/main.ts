@@ -1,4 +1,4 @@
-import { delay } from "./test"
+import { delay } from "./test.js"
 
 const main = async () => {
     await delay(1000);
