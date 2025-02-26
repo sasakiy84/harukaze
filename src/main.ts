@@ -11,11 +11,14 @@ const loadEnv = (envName: string): string => {
 const main = async () => {
   const SLACK_BOT_TOKEN = loadEnv('SLACK_BOT_TOKEN');
   const SLACK_SIGNING_SECRET = loadEnv('SLACK_SIGNING_SECRET');
+  const SLACK_APP_TOKEN = loadEnv('SLACK_APP_TOKEN');
 
   const boltApp = new bolt.App({
     token: SLACK_BOT_TOKEN,
     signingSecret: SLACK_SIGNING_SECRET,
     logLevel: LogLevel.DEBUG,
+    socketMode: true,
+    appToken: SLACK_APP_TOKEN,
   });
 
   boltApp.message('hello', async ({ message, say }) => {
