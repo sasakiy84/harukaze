@@ -1,34 +1,83 @@
 import { loadEnv } from './utils.js';
 import { getAllSlackChannels } from './slack.js';
-import type { DataEntry, Plugin, SourceProvider, Notifier } from './interfaces.js';
+import type { DataEntry, Plugin, SourceProvider, Notifier, SuccessHandler, ErrorHandler, ResultWithHandler } from './interfaces.js';
+import { PluginError } from './interfaces.js';
 
 import OpenAI from 'openai';
 
-export const fetchFeedsAndNotify = async <T, U = T>(sourceProvider: SourceProvider<T>, notifier: Notifier<U>, pluginApplyer: (entries: DataEntry<T>[]) => Promise<DataEntry<U>[]>) => {
-  const entries = await sourceProvider.fetchEntries();
-  const pluginAppliedEntries = await pluginApplyer(entries);
+export const fetchFeedsAndNotify = async <T, U = T>(sourceProvider: SourceProvider<T>, notifier: Notifier<U>, pluginApplyer: (entries: DataEntry<T>[]) => Promise<ResultWithHandler<DataEntry<U>[]>>) => {
+  const successHandlers: SuccessHandler[] = [];
+  const errorHandlers: ErrorHandler[] = [];
 
-  console.log('Feeds:', entries.length);
-  console.log('Filtered feeds:', entries.map(entry => `${entry.title}, ${entry.link}, ${entry.targetId}, ${entry.createdAt}, ${entry.updatedAt}`).join('\n'));
+  try {
+    const {
+      results: resultsForSourceProvider,
+      successHandler: successHandlerForSourceProvider, errorHandler: errorHandlerForSourceProvider
+    } = await sourceProvider.fetchEntries();
+    if (successHandlerForSourceProvider) {
+      successHandlers.push(successHandlerForSourceProvider);
+    }
+    if (errorHandlerForSourceProvider) {
+      errorHandlers.push(errorHandlerForSourceProvider);
+    }
 
-  await notifier.sendNotification(pluginAppliedEntries);
-};
+    const {
+      results: resultsForPlugin,
+      successHandler: successHandlerForPluginApplyer,
+      errorHandler: errorHandlerForPluginApplyer
+    } = await pluginApplyer(resultsForSourceProvider);
+
+    if (successHandlerForPluginApplyer) {
+      successHandlers.push(successHandlerForPluginApplyer);
+    }
+    if (errorHandlerForPluginApplyer) {
+      errorHandlers.push(errorHandlerForPluginApplyer);
+    }
+
+    console.log('Feeds:', resultsForPlugin.length);
+    console.log('Filtered feeds:', resultsForPlugin.map(entry => `${entry.title}, ${entry.link}, ${entry.targetId}, ${entry.createdAt}, ${entry.updatedAt}`).join('\n'));
+
+    const {
+      successHandler: successHandlerForNotifier,
+      errorHandler: errorHandlerForNotifier
+    } = await notifier.sendNotification(resultsForPlugin);
+
+    if (successHandlerForNotifier) {
+      successHandlers.push(successHandlerForNotifier);
+    }
+    if (errorHandlerForNotifier) {
+      errorHandlers.push(errorHandlerForNotifier);
+    }
+
+    for (const successHandler of successHandlers) {
+      await successHandler();
+    }
+  }
+  catch (error) {
+    for (const errorHandler of errorHandlers) {
+      if (error instanceof Error) {
+        await errorHandler(error);
+      } else {
+        await errorHandler(new Error(`Unknown error occurred: ${error}`));
+      }
+    }
+
+
+  };
+}
 
 const OPENAI_API_KEY = loadEnv("OPENAI_API_KEY");
 const openai = new OpenAI({
   apiKey: OPENAI_API_KEY,
 });
 
+
+
 export const determineNotificationChannelPlugin: Plugin = async (entries) => {
   const channels = await getAllSlackChannels();
   if (!channels) {
     console.error('Failed to fetch channels');
-    return entries.map(entry => ({
-      ...entry,
-      metadata: {
-        additionalMessages: entry.metadata?.additionalMessages || []
-      }
-    }));
+    throw new PluginError('Failed to fetch channels');
   }
 
   const targetChannels = (channels || []).filter(channel =>
@@ -70,10 +119,14 @@ ${targetChannels.map((channel, index) => `  <channel number='${index}'>
     entry.targetId = matchedChannel?.id ?? entry.targetId;
   }
 
-  return entries.map(entry => ({
+  const results = entries.map(entry => ({
     ...entry,
     metadata: {
       additionalMessages: entry.metadata?.additionalMessages || []
     }
   }));
+
+  return {
+    results: results,
+  }
 };

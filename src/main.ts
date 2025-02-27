@@ -4,17 +4,50 @@ import { fetchFeedsAndNotify, determineNotificationChannelPlugin } from './notif
 import { MinifluxSourceProvider } from './minifluxSourceProvider.js';
 import { type SlackMetadata, SlackNotifier } from './slackNotifier.js';
 import { slackDataEntryTransformer } from './slackDataEntryTransformer.js';
-import type { DataEntry } from './interfaces.js';
+import type { DataEntry, ErrorHandler, Plugin, SuccessHandler } from './interfaces.js';
 
 
 export const FEED_FETCH_INTERVAL_SECOND = 60;
 
 const sourceProvider = new MinifluxSourceProvider();
 const notifier = new SlackNotifier();
-const pluginApplyer = async (_entries: DataEntry[]): Promise<DataEntry<SlackMetadata>[]> => {
-  return await slackDataEntryTransformer(
-    await determineNotificationChannelPlugin(_entries)
-  )
+const pluginApplyer: Plugin<Record<string, unknown>, SlackMetadata> = async (_entries: DataEntry[]) => {
+  const successHandlers: SuccessHandler[] = [];
+  const errorHandlers: ErrorHandler[] = [];
+
+  const { results: resultsForNotificationChannelPlugin, successHandler: successHandlerForNotificationChannelPlugin, errorHandler: errorHandlerForNotificationChannelPlugin } = await determineNotificationChannelPlugin(_entries);
+  if (successHandlerForNotificationChannelPlugin) {
+    successHandlers.push(successHandlerForNotificationChannelPlugin);
+  }
+  if (errorHandlerForNotificationChannelPlugin) {
+    errorHandlers.push(errorHandlerForNotificationChannelPlugin);
+  }
+
+  const { results: resultsForSlackDataEntryTransformer, successHandler: successHandlerForSlackDataEntryTransformer, errorHandler: errorHandlerForSlackDataEntryTransformer } = await slackDataEntryTransformer(resultsForNotificationChannelPlugin);
+  if (successHandlerForSlackDataEntryTransformer) {
+    successHandlers.push(successHandlerForSlackDataEntryTransformer);
+  }
+  if (errorHandlerForSlackDataEntryTransformer) {
+    errorHandlers.push(errorHandlerForSlackDataEntryTransformer);
+  }
+
+  return {
+    results: resultsForSlackDataEntryTransformer,
+    successHandler: async () => {
+      for (const successHandler of successHandlers) {
+        await successHandler();
+      }
+    },
+    errorHandler: async (error: Error) => {
+      for (const errorHandler of errorHandlers) {
+        if (error instanceof Error) {
+          await errorHandler(error);
+        } else {
+          throw new Error('Error handler must be an instance of Error');
+        }
+      }
+    }
+  }
 };
 
 await fetchFeedsAndNotify(sourceProvider, notifier, pluginApplyer);

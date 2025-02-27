@@ -7,7 +7,7 @@ export interface SlackMetadata {
 }
 
 export class SlackNotifier implements Notifier<SlackMetadata> {
-    async sendNotification(entries: DataEntry<SlackMetadata>[]): Promise<void> {
+    async sendNotification(entries: DataEntry<SlackMetadata>[]) {
         for (const entry of entries) {
             if (entry.targetId) {
                 await sendSlackMessage(entry.targetId, entry.title, [
@@ -68,5 +68,9 @@ export class SlackNotifier implements Notifier<SlackMetadata> {
                 ]);
             }
         }
+
+        return {
+            results: true,
+        };
     }
 }
