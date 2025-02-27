@@ -1,4 +1,4 @@
-import { WebClient, ConversationsListResponse, ChatPostMessageResponse, KnownBlock } from '@slack/web-api';
+import { WebClient, type ConversationsListResponse, type ChatPostMessageResponse, type KnownBlock } from '@slack/web-api';
 import { loadEnv } from './utils.js';
 
 const token = loadEnv('SLACK_BOT_TOKEN');
@@ -9,9 +9,8 @@ export async function getAllSlackChannels(): Promise<ConversationsListResponse['
   const result: ConversationsListResponse = await web.conversations.list();
   if (result.ok && result.channels) {
     return result.channels;
-  } else {
-    throw new Error('Failed to fetch channels');
   }
+  throw new Error('Failed to fetch channels');
 }
 
 export async function sendSlackMessage(channelId: string, text: string, blocks: KnownBlock[]): Promise<ChatPostMessageResponse> {

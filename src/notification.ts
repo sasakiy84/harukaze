@@ -1,92 +1,17 @@
-import { getNSecondsAgo, getUnixTime, loadEnv } from './utils.js';
-import { MinifluxFeedEntry, readMinifluxEntries } from './miniflux.js';
-import { getAllSlackChannels, sendSlackMessage } from './slack.js';
-import { KnownBlock } from '@slack/web-api';
+import { loadEnv } from './utils.js';
+import { getAllSlackChannels } from './slack.js';
+import type { DataEntry, Plugin, SourceProvider, Notifier } from './interfaces.js';
+
 import OpenAI from 'openai';
 
-export const FEED_FETCH_INTERVAL_SECOND = 60;
+export const fetchFeedsAndNotify = async <T, U = T>(sourceProvider: SourceProvider<T>, notifier: Notifier<U>, pluginApplyer: (entries: DataEntry<T>[]) => Promise<DataEntry<U>[]>) => {
+  const entries = await sourceProvider.fetchEntries();
+  const pluginAppliedEntries = await pluginApplyer(entries);
 
-export type PluginDataObject = MinifluxFeedEntry & {
-  filtered: boolean;
-  additionalMessages: Record<string, string>;
-  channelId: string;
-}
+  console.log('Feeds:', entries.length);
+  console.log('Filtered feeds:', entries.map(entry => `${entry.title}, ${entry.link}, ${entry.targetId}, ${entry.createdAt}, ${entry.updatedAt}`).join('\n'));
 
-export type Plugin = (entries: PluginDataObject[]) => Promise<PluginDataObject[]>;
-
-let lastFetchedAt: Date | null = null;
-export const fetchFeedsAndNotify = async (plugins: Plugin[] = []) => {
-  const changedAfter = lastFetchedAt || getNSecondsAgo(FEED_FETCH_INTERVAL_SECOND);
-  const changedBefore = new Date();
-  // 新しい　feed を追加したときに、大量の entry が登録される。それら全てが通知されるのを防ぐため、24時間以内に公開されたものだけを通知する
-  const publishedAfter =  getNSecondsAgo(60 * 60 * 24);
-  const publishedBefore = new Date();
-
-  const getEntryResponse = await readMinifluxEntries({
-    changed_after: getUnixTime(changedAfter),
-    changed_before: getUnixTime(changedBefore),
-    published_after: getUnixTime(publishedAfter),
-    published_before: getUnixTime(publishedBefore),
-    status: 'unread',
-  });
-  let feedsForPlugin: PluginDataObject[] = getEntryResponse.entries.map(entry => ({
-    ...entry,
-    filtered: false,
-    additionalMessages: {},
-    channelId: '',
-  }));
-
-  console.log('Filtered feeds:', feedsForPlugin.map(entry => `${entry.title}, ${entry.url}, ${entry.channelId}, ${entry.created_at}, ${entry.changed_at}`).join('\n'));
-
-
-  for (const plugin of plugins) {
-    feedsForPlugin = await plugin(feedsForPlugin);
-  }
-
-  console.log('Feeds:', feedsForPlugin.length);
-  console.log('Filtered feeds:', feedsForPlugin.map(entry => `${entry.title}, ${entry.url}, ${entry.channelId}, ${entry.created_at}, ${entry.changed_at}`).join('\n'));
-
-  for (const entry of feedsForPlugin) {
-    if (entry.channelId) {
-      const blocks: KnownBlock[] = [
-        {
-          type: "header",
-          text: {
-            type: "plain_text",
-            text: `${entry.title}`,
-            emoji: true
-          }
-        },
-        {
-          type: "section",
-          fields: [
-            {
-              type: "mrkdwn",
-              text: `*URL:*\n${entry.url}`
-            },
-            {
-              type: "mrkdwn",
-              text: `*Category:*\n${entry.feed.category.title}`
-            }
-          ]
-        },
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: entry.content
-          }
-        },
-        {
-          type: "divider"
-        }
-      ];
-      await sendSlackMessage(entry.channelId, entry.title, blocks);
-    }
-  }
-
-  // Update last fetched time only if the fetch was successful
-  lastFetchedAt = changedBefore;
+  await notifier.sendNotification(pluginAppliedEntries);
 };
 
 const OPENAI_API_KEY = loadEnv("OPENAI_API_KEY");
@@ -98,7 +23,12 @@ export const determineNotificationChannelPlugin: Plugin = async (entries) => {
   const channels = await getAllSlackChannels();
   if (!channels) {
     console.error('Failed to fetch channels');
-    return entries;
+    return entries.map(entry => ({
+      ...entry,
+      metadata: {
+        additionalMessages: entry.metadata?.additionalMessages || []
+      }
+    }));
   }
 
   const targetChannels = (channels || []).filter(channel =>
@@ -119,8 +49,8 @@ export const determineNotificationChannelPlugin: Plugin = async (entries) => {
           role: 'user',
           content: `<entry>
   <title>${entry.title}</title>
-  <url>${entry.url}</url>
-  <category>${entry.feed.category.title}</category>
+  <url>${entry.link}</url>
+  <category>${entry.categories.join(', ')}</category>
   <content>${entry.content}</content>
 </entry>
 
@@ -137,8 +67,13 @@ ${targetChannels.map((channel, index) => `  <channel number='${index}'>
     const channel = response.choices[0].message.content;
     const targetChannelNumber = channel ? Number.parseInt(channel) || 0 : 0;
     const matchedChannel = targetChannels[targetChannelNumber] || targetChannels.at(0);
-    entry.channelId = matchedChannel?.id ?? entry.channelId;
+    entry.targetId = matchedChannel?.id ?? entry.targetId;
   }
 
-  return entries;
+  return entries.map(entry => ({
+    ...entry,
+    metadata: {
+      additionalMessages: entry.metadata?.additionalMessages || []
+    }
+  }));
 };

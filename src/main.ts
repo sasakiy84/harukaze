@@ -1,13 +1,26 @@
 import bolt, { LogLevel } from '@slack/bolt';
 import { loadEnv } from './utils.js';
-import { fetchFeedsAndNotify, determineNotificationChannelPlugin, Plugin, FEED_FETCH_INTERVAL_SECOND } from './notification.js';
+import { fetchFeedsAndNotify, determineNotificationChannelPlugin } from './notification.js';
+import { MinifluxSourceProvider } from './minifluxSourceProvider.js';
+import { type SlackMetadata, SlackNotifier } from './slackNotifier.js';
+import { slackDataEntryTransformer } from './slackDataEntryTransformer.js';
+import type { DataEntry } from './interfaces.js';
 
-const plugins: Plugin[] = [determineNotificationChannelPlugin];
 
-await fetchFeedsAndNotify(plugins);
+export const FEED_FETCH_INTERVAL_SECOND = 60;
+
+const sourceProvider = new MinifluxSourceProvider();
+const notifier = new SlackNotifier();
+const pluginApplyer = async (_entries: DataEntry[]): Promise<DataEntry<SlackMetadata>[]> => {
+  return await slackDataEntryTransformer(
+    await determineNotificationChannelPlugin(_entries)
+  )
+};
+
+await fetchFeedsAndNotify(sourceProvider, notifier, pluginApplyer);
 setInterval(async () => {
   try {
-    await fetchFeedsAndNotify(plugins);
+    await fetchFeedsAndNotify(sourceProvider, notifier, pluginApplyer);
   } catch (error) {
     console.error('Failed to fetch feeds and notify:', error);
   }
