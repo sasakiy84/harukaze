@@ -1,7 +1,7 @@
 {
-  "name": "miniflux-slack-adaptor",
+  "name": "harukaze",
   "version": "1.0.0",
-  "description": "A Slack app to fetch, filter, and summarize RSS feeds from a self-hosted Miniflux API using a language model, and send notifications to Slack.",
+  "description": "",
   "main": "index.js",
   "scripts": {
     "start": "tsc --project tsconfig.json && node --env-file .env dist/main.js"

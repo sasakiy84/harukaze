@@ -81,7 +81,7 @@ export const determineNotificationChannelPlugin: Plugin = async (entries) => {
   }
 
   const targetChannels = (channels || []).filter(channel =>
-    channel.topic?.value?.includes('for_miniflux_slack_adaptor')
+    channel.topic?.value?.includes('for_harukaze_notification')
   );
 
   console.log(`Target channels: ${targetChannels.map(channel => channel.name).join(', ')}`);
