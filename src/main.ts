@@ -11,11 +11,11 @@ export const FEED_FETCH_INTERVAL_SECOND = 60;
 
 const sourceProvider = new MinifluxSourceProvider();
 const notifier = new SlackNotifier();
-const pluginApplyer: Plugin<MinifluxMetadata, SlackMetadata> = async (_entries: DataEntry[]) => {
+const pluginApplyer: Plugin<MinifluxMetadata, SlackMetadata> = async (entries: DataEntry[]) => {
   const successHandlers: SuccessHandler[] = [];
   const errorHandlers: ErrorHandler[] = [];
 
-  const { results: resultsForNotificationChannelPlugin, successHandler: successHandlerForNotificationChannelPlugin, errorHandler: errorHandlerForNotificationChannelPlugin } = await determineNotificationChannelPlugin(_entries);
+  const { results: resultsForNotificationChannelPlugin, successHandler: successHandlerForNotificationChannelPlugin, errorHandler: errorHandlerForNotificationChannelPlugin } = await determineNotificationChannelPlugin(entries);
   if (successHandlerForNotificationChannelPlugin) {
     successHandlers.push(successHandlerForNotificationChannelPlugin);
   }
