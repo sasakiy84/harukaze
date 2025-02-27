@@ -1,9 +1,9 @@
 import bolt, { LogLevel } from '@slack/bolt';
 import { loadEnv } from './utils.js';
 import { fetchFeedsAndNotify, determineNotificationChannelPlugin } from './notification.js';
-import { MinifluxSourceProvider } from './minifluxSourceProvider.js';
+import { type MinifluxMetadata, MinifluxSourceProvider } from './minifluxSourceProvider.js';
 import { type SlackMetadata, SlackNotifier } from './slackNotifier.js';
-import { slackDataEntryTransformer } from './slackDataEntryTransformer.js';
+import { TransformerFromMinifluxToSlack } from './slackDataEntryTransformer.js';
 import type { DataEntry, ErrorHandler, Plugin, SuccessHandler } from './interfaces.js';
 
 
@@ -11,7 +11,7 @@ export const FEED_FETCH_INTERVAL_SECOND = 60;
 
 const sourceProvider = new MinifluxSourceProvider();
 const notifier = new SlackNotifier();
-const pluginApplyer: Plugin<Record<string, unknown>, SlackMetadata> = async (_entries: DataEntry[]) => {
+const pluginApplyer: Plugin<MinifluxMetadata, SlackMetadata> = async (_entries: DataEntry[]) => {
   const successHandlers: SuccessHandler[] = [];
   const errorHandlers: ErrorHandler[] = [];
 
@@ -23,7 +23,7 @@ const pluginApplyer: Plugin<Record<string, unknown>, SlackMetadata> = async (_en
     errorHandlers.push(errorHandlerForNotificationChannelPlugin);
   }
 
-  const { results: resultsForSlackDataEntryTransformer, successHandler: successHandlerForSlackDataEntryTransformer, errorHandler: errorHandlerForSlackDataEntryTransformer } = await slackDataEntryTransformer(resultsForNotificationChannelPlugin);
+  const { results: resultsForSlackDataEntryTransformer, successHandler: successHandlerForSlackDataEntryTransformer, errorHandler: errorHandlerForSlackDataEntryTransformer } = await TransformerFromMinifluxToSlack(resultsForNotificationChannelPlugin);
   if (successHandlerForSlackDataEntryTransformer) {
     successHandlers.push(successHandlerForSlackDataEntryTransformer);
   }

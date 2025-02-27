@@ -3,8 +3,8 @@ import type { MinifluxFeedEntry } from './miniflux.js';
 import { readMinifluxEntries } from './miniflux.js';
 import { getUnixTime, getNSecondsAgo } from './utils.js';
 
-
-export class MinifluxSourceProvider implements SourceProvider {
+export type MinifluxMetadata = Record<string, unknown>;
+export class MinifluxSourceProvider implements SourceProvider<MinifluxMetadata> {
     lastFetchTime: Date | null = null;
     async fetchEntries() {
         const changedAfter = this.lastFetchTime || getNSecondsAgo(60 * 60 * 3);
