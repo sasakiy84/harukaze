@@ -6,6 +6,7 @@ import type {
   ErrorHandler,
   ResultWithHandler,
 } from "./interfaces.js";
+import { sendSlackMessage } from "./notifiers/slack.js";
 
 export const fetchFeedsFromMinifluxAndNotifySlack = async <T, U = T>(
   sourceProvider: SourceProvider<T>,
@@ -74,11 +75,47 @@ export const fetchFeedsFromMinifluxAndNotifySlack = async <T, U = T>(
     console.error(`doing ${errorHandlers.length} error handlers`);
     for (const errorHandler of errorHandlers) {
       if (error instanceof Error) {
-        await errorHandler(error);
+        try {
+          await errorHandler(error);
+        } catch (error) {
+          console.error(`Error handler failed: ${error}`);
+        }
       } else {
-        await errorHandler(new Error(`Unknown error occurred: ${error}`));
+        try {
+          await errorHandler(
+            new Error("Error handler must be an instance of Error"),
+          );
+        } catch (error) {
+          console.error(`Error handler failed: ${error}`);
+        }
       }
     }
     console.error("Error handlers done");
+
+    try {
+      await sendSlackMessage(
+        process.env.SLACK_ERROR_CHANNEL_ID || "C08FB6XER0E",
+        `Error occurred while fetchFeedFromMinifluxAndNotifySlack: ${error}`,
+        [],
+      );
+      if (error instanceof Error) {
+        await sendSlackMessage(
+          process.env.SLACK_ERROR_CHANNEL_ID || "C08FB6XER0E",
+          `Error message: \n\`\`\`\n${error.stack}\`\`\``,
+          [
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: error.stack ? `\`\`\`\n${error.stack}\`\`\`` : "",
+              },
+            }
+          ],
+        );
+      }
+    } catch (error) {
+      console.error(`Failed to send error message: ${error}`);
+
+    }
   }
 };
