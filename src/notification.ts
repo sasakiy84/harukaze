@@ -54,6 +54,8 @@ export const fetchFeedsAndNotify = async <T, U = T>(sourceProvider: SourceProvid
     }
   }
   catch (error) {
+    console.error(`Error occurred: ${error}`);
+    console.error(`doing ${errorHandlers.length} error handlers`);
     for (const errorHandler of errorHandlers) {
       if (error instanceof Error) {
         await errorHandler(error);
@@ -61,8 +63,7 @@ export const fetchFeedsAndNotify = async <T, U = T>(sourceProvider: SourceProvid
         await errorHandler(new Error(`Unknown error occurred: ${error}`));
       }
     }
-
-
+    console.error('Error handlers done');
   };
 }
 

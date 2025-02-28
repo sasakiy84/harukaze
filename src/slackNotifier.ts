@@ -6,6 +6,14 @@ export interface SlackMetadata {
     additionalMessages: KnownBlock[];
 }
 
+const dateFormatter = Intl.DateTimeFormat("ja-JP", {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+});
+
 export class SlackNotifier implements Notifier<SlackMetadata> {
     async sendNotification(entries: DataEntry<SlackMetadata>[]) {
         for (const entry of entries) {
@@ -17,13 +25,6 @@ export class SlackNotifier implements Notifier<SlackMetadata> {
                             type: "plain_text",
                             text: `${entry.title}`,
                             emoji: true
-                        }
-                    },
-                    {
-                        type: "section",
-                        text: {
-                            type: "mrkdwn",
-                            text: `*Categories:* ${entry.categories.join(', ')}`
                         }
                     },
                     {
@@ -53,15 +54,29 @@ export class SlackNotifier implements Notifier<SlackMetadata> {
                         elements: [
                             {
                                 type: "mrkdwn",
-                                text: entry.link,
+                                text: `:art: categories: ${entry.categories.join(", ")}`,
+                            },
+                        ]
+                    },
+                    {
+                        type: "context",
+                        elements: [
+                            {
+                                type: "mrkdwn",
+                                text: `:link: ${entry.link}`,
+                            }
+                        ]
+                    },
+                    {
+                        type: "context",
+                        elements: [
+                            {
+                                type: "mrkdwn",
+                                text: `:spiral_calendar_pad: *Created at:* ${dateFormatter.format(entry.createdAt)}`
                             },
                             {
                                 type: "mrkdwn",
-                                text: `*Created at:* ${entry.createdAt.toISOString()}`
-                            },
-                            {
-                                type: "mrkdwn",
-                                text: `*Updated at:* ${entry.updatedAt.toISOString()}`
+                                text: `*Updated at:* ${dateFormatter.format(entry.updatedAt)}`
                             }
                         ]
                     }

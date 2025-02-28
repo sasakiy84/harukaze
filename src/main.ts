@@ -5,6 +5,7 @@ import { type MinifluxMetadata, MinifluxSourceProvider } from './minifluxSourceP
 import { type SlackMetadata, SlackNotifier } from './slackNotifier.js';
 import { TransformerFromMinifluxToSlack } from './slackDataEntryTransformer.js';
 import type { DataEntry, ErrorHandler, Plugin, SuccessHandler } from './interfaces.js';
+import { commentatorPluginForSlack } from './commentatorPlugin.js';
 
 
 export const FEED_FETCH_INTERVAL_SECOND = 60;
@@ -14,6 +15,8 @@ const notifier = new SlackNotifier();
 const pluginApplyer: Plugin<MinifluxMetadata, SlackMetadata> = async (entries: DataEntry[]) => {
   const successHandlers: SuccessHandler[] = [];
   const errorHandlers: ErrorHandler[] = [];
+
+  console.log(`Received ${entries.length} entries`);
 
   const { results: resultsForNotificationChannelPlugin, successHandler: successHandlerForNotificationChannelPlugin, errorHandler: errorHandlerForNotificationChannelPlugin } = await determineNotificationChannelPlugin(entries);
   if (successHandlerForNotificationChannelPlugin) {
@@ -31,8 +34,23 @@ const pluginApplyer: Plugin<MinifluxMetadata, SlackMetadata> = async (entries: D
     errorHandlers.push(errorHandlerForSlackDataEntryTransformer);
   }
 
+  const {
+    results: resultForCommentatorPluginForSlack,
+    successHandler: successHandlerForCommentatorPluginForSlack,
+    errorHandler: errorHandlerForCommentatorPluginForSlack
+  } = await commentatorPluginForSlack(resultsForSlackDataEntryTransformer);
+
+  if (successHandlerForCommentatorPluginForSlack) {
+    successHandlers.push(successHandlerForCommentatorPluginForSlack);
+  }
+  if (errorHandlerForCommentatorPluginForSlack) {
+    errorHandlers.push(errorHandlerForCommentatorPluginForSlack);
+  }
+
+  console.log(`Transformed ${resultForCommentatorPluginForSlack.length} entries`);
+
   return {
-    results: resultsForSlackDataEntryTransformer,
+    results: resultForCommentatorPluginForSlack,
     successHandler: async () => {
       for (const successHandler of successHandlers) {
         await successHandler();
