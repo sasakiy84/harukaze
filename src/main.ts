@@ -81,6 +81,7 @@ const main = async () => {
   const SLACK_BOT_TOKEN = loadEnv('SLACK_BOT_TOKEN');
   const SLACK_SIGNING_SECRET = loadEnv('SLACK_SIGNING_SECRET');
   const SLACK_APP_TOKEN = loadEnv('SLACK_APP_TOKEN');
+  const PORT = Number(loadEnv('PORT'));
 
   const boltApp = new bolt.App({
     token: SLACK_BOT_TOKEN,
@@ -98,8 +99,8 @@ const main = async () => {
     await say(`Hello, <@${message.user}>!`);
   });
 
-  await boltApp.start(3000);
-  console.log('⚡️ Bolt app is running!');
+  await boltApp.start(PORT);
+  console.log(`⚡️ Bolt app is running! (port: ${PORT})`);
 }
 
 main().catch((error) => {
