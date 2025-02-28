@@ -4,17 +4,17 @@ import { fetchFeedsFromMinifluxAndNotifySlack } from "./minifluSlackAdaptor.js";
 import {
   type MinifluxMetadata,
   MinifluxSourceProvider,
-} from "./minifluxSourceProvider.js";
-import { type SlackMetadata, SlackNotifier } from "./slackNotifier.js";
-import { TransformerFromMinifluxToSlack } from "./slackDataEntryTransformer.js";
+} from "./sourceProviders/minifluxSourceProvider.js";
+import { type SlackMetadata, SlackNotifier } from "./notifiers/slackNotifier.js";
+import { TransformerFromMinifluxToSlack } from "./plugins/slackDataEntryTransformer.js";
 import type {
   DataEntry,
   ErrorHandler,
   Plugin,
   SuccessHandler,
 } from "./interfaces.js";
-import { commentatorPluginForSlack } from "./commentatorPlugin.js";
-import { determineNotificationChannelPlugin } from "./determineNotificationChannelPlugin.js";
+import { commentatorPluginForSlack } from "./plugins/commentatorPlugin.js";
+import { determineNotificationChannelPlugin } from "./plugins/determineNotificationChannelPlugin.js";
 
 export const FEED_FETCH_INTERVAL_SECOND = 60;
 

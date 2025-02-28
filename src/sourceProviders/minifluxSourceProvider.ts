@@ -1,7 +1,7 @@
-import type { SourceProvider } from './interfaces.js';
+import type { SourceProvider } from '../interfaces.js';
 import type { MinifluxFeedEntry } from './miniflux.js';
 import { readMinifluxEntries } from './miniflux.js';
-import { getUnixTime, getNSecondsAgo } from './utils.js';
+import { getUnixTime, getNSecondsAgo } from '../utils.js';
 
 export type MinifluxMetadata = Record<string, unknown>;
 export class MinifluxSourceProvider implements SourceProvider<MinifluxMetadata> {

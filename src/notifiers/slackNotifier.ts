@@ -1,4 +1,4 @@
-import type { DataEntry, Notifier } from './interfaces.js';
+import type { DataEntry, Notifier } from '../interfaces.js';
 import { sendSlackMessage } from './slack.js';
 import type { KnownBlock } from '@slack/web-api';
 

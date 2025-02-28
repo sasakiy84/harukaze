@@ -1,6 +1,6 @@
-import type { Plugin } from './interfaces.js';
+import type { Plugin } from '../interfaces.js';
 import type { KnownBlock } from '@slack/web-api';
-import type { MinifluxMetadata } from './minifluxSourceProvider.js';
+import type { MinifluxMetadata } from '../sourceProviders/minifluxSourceProvider.js';
 
 interface SlackMetadata {
     additionalMessages: KnownBlock[];

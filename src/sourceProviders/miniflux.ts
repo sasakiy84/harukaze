@@ -1,4 +1,4 @@
-import { loadEnv } from "./utils.js";
+import { loadEnv } from "../utils.js";
 
 const MINIFLUX_API_URL = loadEnv("MINIFLUX_API_URL");
 const MINIFLUX_API_KEY = loadEnv("MINIFLUX_API_KEY");

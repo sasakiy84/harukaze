@@ -1,10 +1,10 @@
-import { loadEnv } from "./utils.js";
-import { getAllSlackChannels } from "./slack.js";
-import type { Plugin } from "./interfaces.js";
-import { PluginError } from "./interfaces.js";
+import { loadEnv } from "../utils.js";
+import { getAllSlackChannels } from "../notifiers/slack.js";
+import type { Plugin } from "../interfaces.js";
+import { PluginError } from "../interfaces.js";
 
 import OpenAI from "openai";
-import type { SlackMetadata } from "./slackNotifier.js";
+import type { SlackMetadata } from "../notifiers/slackNotifier.js";
 
 const OPENAI_API_KEY = loadEnv("OPENAI_API_KEY");
 const openai = new OpenAI({

@@ -1,11 +1,11 @@
-import { loadEnv } from './utils.js';
-import type { Plugin, DataEntry } from './interfaces.js';
-import type { SlackMetadata } from './slackNotifier.js';
+import { loadEnv } from '../utils.js';
+import type { Plugin, DataEntry } from '../interfaces.js';
+import type { SlackMetadata } from '../notifiers/slackNotifier.js';
 import OpenAI from 'openai';
 import type { KnownBlock } from '@slack/web-api';
 import type { ChatCompletionParseParams } from 'openai/resources/beta/chat/completions';
-import { calculateGptUsageCost } from './llmUtils.js';
-import { commentators } from './commentators.js';
+import { calculateGptUsageCost } from '../llmUtils.js';
+import { commentators } from './commentatorsPlugin.js';
 import type { ChatModel } from 'openai/resources';
 
 const OPENAI_API_KEY = loadEnv("OPENAI_API_KEY");
